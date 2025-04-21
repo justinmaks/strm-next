@@ -2,6 +2,11 @@
 
 This project implements a secure authentication system using Next.js, SQLite, and JWT.
 
+
+@@ TODO:
+- hcaptcha
+- embed.su or vidsrc.su streaming. player window/view
+
 ## Features
 
 - User registration with validation
