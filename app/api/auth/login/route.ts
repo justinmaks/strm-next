@@ -8,6 +8,7 @@ import {
   verifyPassword 
 } from '@/app/lib/auth';
 import { loginSchema } from '@/app/lib/validation';
+import { verify } from 'hcaptcha';
 
 interface User {
   id: number;
@@ -21,10 +22,23 @@ interface User {
 
 export async function POST(request: NextRequest) {
   try {
-    // Parse and validate the request body
     const body = await request.json();
-    
-    // Validate input
+    const { username, password, captchaToken } = body;
+
+    // Verify captcha first
+    const captchaResult = await verify(
+      process.env.HCAPTCHA_SECRET_KEY!,
+      captchaToken
+    );
+
+    if (!captchaResult.success) {
+      return NextResponse.json(
+        { error: 'Invalid captcha' },
+        { status: 400 }
+      );
+    }
+
+    // Parse and validate the request body
     const validationResult = loginSchema.safeParse(body);
     if (!validationResult.success) {
       return NextResponse.json(
@@ -34,10 +48,10 @@ export async function POST(request: NextRequest) {
     }
     
     // Destructure validated data
-    const { username, password } = validationResult.data;
+    const { username: validatedUsername, password: validatedPassword } = validationResult.data;
     
     // Get the user
-    const user = getUserByUsername(username) as User | undefined;
+    const user = getUserByUsername(validatedUsername) as User | undefined;
     if (!user) {
       return NextResponse.json(
         { error: 'Invalid username or password' },
@@ -46,7 +60,7 @@ export async function POST(request: NextRequest) {
     }
     
     // Verify password
-    const isValidPassword = await verifyPassword(password, user.password);
+    const isValidPassword = await verifyPassword(validatedPassword, user.password);
     if (!isValidPassword) {
       return NextResponse.json(
         { error: 'Invalid username or password' },

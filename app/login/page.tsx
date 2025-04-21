@@ -1,12 +1,14 @@
 'use client';
 
-import React, { useState, Suspense } from 'react';
+import React, { useRef, useState, Suspense } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import HCaptcha from "@hcaptcha/react-hcaptcha";
 import FormInput from '../components/FormInput';
 
 export default function LoginPage() {
   const router = useRouter();
+  const captchaRef = useRef<HCaptcha>(null);
   
   const [formData, setFormData] = useState({
     username: '',
@@ -57,6 +59,16 @@ export default function LoginPage() {
       return;
     }
     
+    // Execute hCaptcha when form is submitted
+    captchaRef.current?.execute();
+  };
+  
+  const onCaptchaVerify = async (token: string) => {
+    if (!token) {
+      setLoginError('Captcha verification failed');
+      return;
+    }
+
     setIsLoading(true);
     
     try {
@@ -65,7 +77,10 @@ export default function LoginPage() {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify(formData),
+        body: JSON.stringify({
+          ...formData,
+          captchaToken: token
+        }),
       });
       
       const data = await response.json();
@@ -75,12 +90,13 @@ export default function LoginPage() {
       }
       
       router.push('/dashboard');
-      router.refresh(); // Refresh the page to update auth state
+      router.refresh();
       
     } catch (error) {
       setLoginError(error instanceof Error ? error.message : 'Login failed');
     } finally {
       setIsLoading(false);
+      captchaRef.current?.resetCaptcha();
     }
   };
   
@@ -137,6 +153,13 @@ export default function LoginPage() {
                 autoComplete="current-password"
               />
             </div>
+            
+            <HCaptcha
+              ref={captchaRef}
+              sitekey={process.env.NEXT_PUBLIC_HCAPTCHA_SITE_KEY}
+              onVerify={onCaptchaVerify}
+              size="invisible"
+            />
             
             <div>
               <button

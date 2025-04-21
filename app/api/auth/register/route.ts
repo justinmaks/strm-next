@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createUser, getClientIp, getUserByEmail, getUserByUsername } from '@/app/lib/auth';
 import { registerSchema } from '@/app/lib/validation';
+import { verify } from 'hcaptcha';
 
 interface User {
   id: number;
@@ -14,10 +15,23 @@ interface User {
 
 export async function POST(request: NextRequest) {
   try {
-    // Parse and validate the request body
     const body = await request.json();
-    
-    // Validate input
+    const { username, email, password, captchaToken } = body;
+
+    // Verify captcha first
+    const captchaResult = await verify(
+      process.env.HCAPTCHA_SECRET_KEY!,
+      captchaToken
+    );
+
+    if (!captchaResult.success) {
+      return NextResponse.json(
+        { error: 'Invalid captcha' },
+        { status: 400 }
+      );
+    }
+
+    // Parse and validate the request body
     const validationResult = registerSchema.safeParse(body);
     if (!validationResult.success) {
       return NextResponse.json(
@@ -27,10 +41,10 @@ export async function POST(request: NextRequest) {
     }
     
     // Destructure validated data
-    const { username, email, password } = validationResult.data;
+    const { username: validatedUsername, email: validatedEmail, password: validatedPassword } = validationResult.data;
     
     // Check if username already exists
-    const existingUsername = getUserByUsername(username) as User | undefined;
+    const existingUsername = getUserByUsername(validatedUsername) as User | undefined;
     if (existingUsername) {
       return NextResponse.json(
         { error: 'Username already exists' },
@@ -39,7 +53,7 @@ export async function POST(request: NextRequest) {
     }
     
     // Check if email already exists
-    const existingEmail = getUserByEmail(email) as User | undefined;
+    const existingEmail = getUserByEmail(validatedEmail) as User | undefined;
     if (existingEmail) {
       return NextResponse.json(
         { error: 'Email already exists' },
@@ -51,7 +65,7 @@ export async function POST(request: NextRequest) {
     const ip = await getClientIp();
     
     // Create the user
-    const userId = await createUser(username, email, password, ip);
+    const userId = await createUser(validatedUsername, validatedEmail, validatedPassword, ip);
     
     return NextResponse.json(
       { success: true, userId, message: 'User registered successfully' },

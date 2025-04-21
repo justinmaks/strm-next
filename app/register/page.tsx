@@ -1,12 +1,14 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import FormInput from '../components/FormInput';
+import HCaptcha from "@hcaptcha/react-hcaptcha";
 
 export default function RegisterPage() {
   const router = useRouter();
+  const captchaRef = useRef<HCaptcha>(null);
   
   const [formData, setFormData] = useState({
     username: '',
@@ -88,6 +90,16 @@ export default function RegisterPage() {
       return;
     }
     
+    // Execute hCaptcha when form is submitted
+    captchaRef.current?.execute();
+  };
+  
+  const onCaptchaVerify = async (token: string) => {
+    if (!token) {
+      setRegisterError('Captcha verification failed');
+      return;
+    }
+
     setIsLoading(true);
     
     try {
@@ -96,7 +108,10 @@ export default function RegisterPage() {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify(formData),
+        body: JSON.stringify({
+          ...formData,
+          captchaToken: token
+        }),
       });
       
       const data = await response.json();
@@ -105,13 +120,13 @@ export default function RegisterPage() {
         throw new Error(data.error || 'Registration failed');
       }
       
-      // Redirect to login page on success
       router.push('/login?registered=true');
       
     } catch (error) {
       setRegisterError(error instanceof Error ? error.message : 'Registration failed');
     } finally {
       setIsLoading(false);
+      captchaRef.current?.resetCaptcha();
     }
   };
   
@@ -194,6 +209,13 @@ export default function RegisterPage() {
               autoComplete="new-password"
             />
           </div>
+          
+          <HCaptcha
+            ref={captchaRef}
+            sitekey={process.env.NEXT_PUBLIC_HCAPTCHA_SITE_KEY}
+            onVerify={onCaptchaVerify}
+            size="invisible"
+          />
           
           <div>
             <button
