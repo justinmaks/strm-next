@@ -10,15 +10,22 @@ RUN apt-get update && apt-get install -y \
     git \
     && rm -rf /var/lib/apt/lists/*
 
-# Set working directory
+# Create app directory and set permissions
 WORKDIR /app
 
+# Create data directory and set permissions
+RUN mkdir -p /app/data && \
+    chown -R node:node /app
+
+# Switch to non-root user
+USER node
+
 # Install dependencies first (for better caching)
-COPY package*.json ./
+COPY --chown=node:node package*.json ./
 RUN npm ci
 
 # Copy the rest of the application
-COPY . .
+COPY --chown=node:node . .
 
 # Build the Next.js application
 RUN npm run build

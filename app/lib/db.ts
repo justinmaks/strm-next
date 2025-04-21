@@ -10,7 +10,17 @@ if (!fs.existsSync(dataDir)) {
 
 // Initialize the database
 const dbPath = path.join(dataDir, 'users.db');
-const db = new Database(dbPath);
+const db = new Database(dbPath, {
+  readonly: false,
+  fileMustExist: false,
+  timeout: 5000,
+  verbose: process.env.NODE_ENV === 'development' ? console.log : undefined
+});
+
+// Set pragmas for better security
+db.pragma('journal_mode = WAL');
+db.pragma('synchronous = NORMAL');
+db.pragma('foreign_keys = ON');
 
 // Create tables if they don't exist
 const createTables = () => {

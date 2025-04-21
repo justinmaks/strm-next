@@ -9,6 +9,8 @@ import type { User } from './types';
 const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key-change-in-production';
 const JWT_EXPIRY = '7d'; // 7 days
 
+const ACTIVE_SESSIONS = new Map();
+
 // Get IP address with fallback for proxies
 export async function getClientIp(): Promise<string> {
   const headersList = await headers();
@@ -58,10 +60,11 @@ export async function setAuthCookie(token: string) {
   const cookieStore = await cookies();
   cookieStore.set('auth_token', token, {
     httpOnly: true,
-    secure: process.env.NODE_ENV === 'production',
+    secure: true, // Always use secure in production
     maxAge: 60 * 60 * 24 * 7, // 7 days
     path: '/',
     sameSite: 'strict',
+    domain: process.env.COOKIE_DOMAIN, // Set this in production
   });
 }
 
@@ -120,4 +123,14 @@ export function getUserByEmail(email: string): User | undefined {
 // Get user by id
 export function getUserById(id: number): User | undefined {
   return db.prepare('SELECT * FROM users WHERE id = ?').get(id) as User | undefined;
+}
+
+export function trackSession(userId: number, token: string) {
+  const userSessions = ACTIVE_SESSIONS.get(userId) ?? new Set();
+  userSessions.add(token);
+  ACTIVE_SESSIONS.set(userId, userSessions);
+}
+
+export function invalidateAllSessions(userId: number) {
+  ACTIVE_SESSIONS.delete(userId);
 } 

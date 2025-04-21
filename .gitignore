@@ -49,3 +49,14 @@ next-env.d.ts
 .env.development.local
 .env.test.local
 .env.production.local
+
+
+
+# Database files
+/data/
+*.db
+*.db-*
+*.sqlite
+*.sqlite3
+*.sqlite-journal
+*.sqlite3-journal

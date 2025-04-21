@@ -11,8 +11,8 @@ services:
       - NODE_ENV=production
       - NEXT_TELEMETRY_DISABLED=1
     volumes:
-      # Persist SQLite database
-      - ./data:/app/data
+      # Persist SQLite database with proper permissions
+      - ./data:/app/data:rw
       # Don't sync node_modules back to host
       - /app/node_modules
     restart: unless-stopped
@@ -21,6 +21,7 @@ services:
       interval: 30s
       timeout: 10s
       retries: 3
+    user: "node:node"
     deploy:
       resources:
         limits:
