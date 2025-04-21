@@ -87,3 +87,56 @@ You can check out [the Next.js GitHub repository](https://github.com/vercel/next
 The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
 
 Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+
+## Docker Deployment
+
+This project includes Docker support for easy deployment and development.
+
+### Prerequisites
+
+- Docker
+- Docker Compose
+
+### Running with Docker
+
+1. Build and start the container:
+   ```bash
+   docker compose up --build
+   ```
+
+2. For production deployment:
+   ```bash
+   docker compose -f docker-compose.yml up -d
+   ```
+
+3. To stop the containers:
+   ```bash
+   docker compose down
+   ```
+
+### Docker Configuration
+
+The project uses:
+- Node.js 22.8.0
+- SQLite with persistent storage
+- Production-optimized build
+- Health checks
+- Memory limits (2GB max)
+
+The Docker setup includes:
+- Persistent SQLite database storage
+- Environment variable configuration
+- Automatic restarts
+- Resource management
+- Production-ready settings
+
+### Docker Volumes
+
+- `/app/data`: Contains SQLite database files
+- Node modules are cached in a named volume
+
+Remember to:
+1. Set proper environment variables in production
+2. Secure the data volume containing the SQLite database
+3. Monitor container health and logs
+4. Adjust memory limits as needed for your deployment
