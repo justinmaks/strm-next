@@ -13,17 +13,18 @@ const LogoutButton: React.FC = () => {
     try {
       const response = await fetch('/api/auth/logout', {
         method: 'POST',
+        cache: 'no-store',
       });
       
       if (response.ok) {
-        router.push('/login');
-        router.refresh(); // Refresh to update auth state
+        // Force a hard navigation to clear all state
+        window.location.href = '/';
       } else {
         console.error('Logout failed');
+        setIsLoggingOut(false);
       }
     } catch (error) {
       console.error('Logout error:', error);
-    } finally {
       setIsLoggingOut(false);
     }
   };

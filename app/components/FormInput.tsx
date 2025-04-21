@@ -33,7 +33,7 @@ const FormInput: React.FC<FormInputProps> = ({
     <div className="mb-4">
       <label 
         htmlFor={id} 
-        className="block text-sm font-medium text-gray-700 mb-1"
+        className="block text-sm font-medium text-gray-800 mb-1"
       >
         {label} {required && <span className="text-red-500">*</span>}
       </label>
@@ -49,7 +49,7 @@ const FormInput: React.FC<FormInputProps> = ({
         minLength={minLength}
         maxLength={maxLength}
         autoComplete={autoComplete}
-        className={`w-full px-3 py-2 border ${
+        className={`w-full px-3 py-2 border text-gray-900 ${
           error ? 'border-red-500' : 'border-gray-300'
         } rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-primary-500`}
       />

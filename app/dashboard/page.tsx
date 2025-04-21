@@ -5,9 +5,9 @@ import LogoutButton from '../components/LogoutButton';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key-change-in-production';
 
-export default function DashboardPage() {
+export default async function DashboardPage() {
   // Get the auth token from cookies
-  const cookieStore = cookies();
+  const cookieStore = await cookies();
   const token = cookieStore.get('auth_token')?.value;
   
   if (!token) {
@@ -31,7 +31,7 @@ export default function DashboardPage() {
         <div className="bg-white shadow-sm rounded-lg p-6">
           <div className="mb-8 text-center">
             <h1 className="text-3xl font-bold text-gray-900">Dashboard</h1>
-            <p className="mt-2 text-lg text-gray-600">
+            <p className="mt-2 text-lg text-gray-800">
               Welcome, <span className="font-semibold">{username}</span>!
             </p>
           </div>

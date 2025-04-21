@@ -24,3 +24,9 @@ body {
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
 }
+
+/* Make placeholder text darker for better visibility */
+::placeholder {
+  color: #4b5563 !important; /* text-gray-600 equivalent */
+  opacity: 1;
+}
