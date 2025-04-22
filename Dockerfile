@@ -10,12 +10,14 @@ RUN apt-get update && apt-get install -y \
     git \
     && rm -rf /var/lib/apt/lists/*
 
-# Create app directory and set permissions
+# Create app directory
 WORKDIR /app
 
-# Create data directory and set permissions
+# Create data directory with correct permissions
 RUN mkdir -p /app/data && \
-    chown -R node:node /app
+    chown -R node:node /app && \
+    chown -R node:node /app/data && \
+    chmod 755 /app/data
 
 # Switch to non-root user
 USER node

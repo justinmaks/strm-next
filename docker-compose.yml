@@ -11,10 +11,7 @@ services:
       - NODE_ENV=production
       - NEXT_TELEMETRY_DISABLED=1
     volumes:
-      # Persist SQLite database with proper permissions
-      - ./data:/app/data:rw
-      # Don't sync node_modules back to host
-      - /app/node_modules
+      - sqlite_data:/app/data
     restart: unless-stopped
     # healthcheck:
     #   test: wget --no-verbose --tries=1 --spider http://localhost:3000 || exit 1
@@ -27,4 +24,8 @@ services:
         limits:
           memory: 2G
         reservations:
-          memory: 1G 
+          memory: 1G
+
+volumes:
+  sqlite_data:
+    driver: local 
