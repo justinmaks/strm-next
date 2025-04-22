@@ -1,24 +1,36 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
 import jwt from 'jsonwebtoken';
+import logger from '@/app/lib/logger';
 
 const TMDB_API_KEY = process.env.TMDB_API_KEY;
 const TMDB_BASE_URL = 'https://api.themoviedb.org/3';
 const JWT_SECRET = process.env.JWT_SECRET;
 
 export async function GET(request: NextRequest) {
+  const ip = request.headers.get('x-forwarded-for')?.split(',')[0] || 
+             request.headers.get('x-real-ip') || 
+             'unknown';
+  
   // Add authentication check
   const cookieStore = await cookies();
   const token = cookieStore.get('auth_token')?.value;
 
   if (!token) {
+    logger.warn('TMDB search attempt without token', { ip });
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
   try {
     // Verify JWT token
-    jwt.verify(token, JWT_SECRET!);
+    const decoded = jwt.verify(token, JWT_SECRET!) as { userId: number; username: string };
+    logger.info('TMDB search request', { 
+      ip,
+      userId: decoded.userId,
+      username: decoded.username
+    });
   } catch (error) {
+    logger.warn('TMDB search with invalid token', { ip });
     return NextResponse.json({ error: 'Invalid token' }, { status: 401 });
   }
 
@@ -27,10 +39,16 @@ export async function GET(request: NextRequest) {
   const type = searchParams.get('type');
 
   if (!query || !type) {
+    logger.warn('TMDB search missing parameters', { 
+      ip,
+      query,
+      type
+    });
     return NextResponse.json({ error: 'Missing query or type parameter' }, { status: 400 });
   }
 
   if (!TMDB_API_KEY) {
+    logger.error('TMDB API key missing', { ip });
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 
@@ -48,6 +66,11 @@ export async function GET(request: NextRequest) {
     );
 
     if (!response.ok) {
+      logger.error('TMDB API error', { 
+        ip,
+        status: response.status,
+        statusText: response.statusText
+      });
       throw new Error('TMDB API error');
     }
 
@@ -62,9 +85,20 @@ export async function GET(request: NextRequest) {
       overview: item.overview
     }));
 
+    logger.info('TMDB search successful', { 
+      ip,
+      query,
+      type,
+      resultCount: sanitizedResults.length
+    });
+
     return NextResponse.json({ results: sanitizedResults });
   } catch (error) {
-    console.error('TMDB API error:', error);
+    logger.error('TMDB search failed', { 
+      ip,
+      error: error instanceof Error ? error.message : 'Unknown error',
+      stack: error instanceof Error ? error.stack : undefined
+    });
     return NextResponse.json({ error: 'Failed to fetch data' }, { status: 500 });
   }
 } 

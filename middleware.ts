@@ -19,8 +19,24 @@ const publicOnlyPaths = [
   // Add other public-only paths as needed
 ];
 
+export const config = {
+  matcher: [
+    /*
+     * Match all request paths except for the ones starting with:
+     * - api (API routes)
+     * - _next/static (static files)
+     * - _next/image (image optimization files)
+     * - favicon.ico (favicon file)
+     */
+    '/((?!api|_next/static|_next/image|favicon.ico).*)',
+  ],
+};
+
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
+  const ip = request.headers.get('x-forwarded-for')?.split(',')[0] || 
+             request.headers.get('x-real-ip') || 
+             'unknown';
   
   // Get auth token from cookie
   const token = request.cookies.get('auth_token')?.value;
@@ -32,7 +48,7 @@ export async function middleware(request: NextRequest) {
   try {
     if (token) {
       // Verify the token
-      await jwtVerify(token, new TextEncoder().encode(JWT_SECRET));
+      const { payload } = await jwtVerify(token, new TextEncoder().encode(JWT_SECRET));
       
       // If token is valid and trying to access public-only route, redirect to dashboard
       if (isPublicOnlyRoute) {
@@ -63,8 +79,4 @@ export async function middleware(request: NextRequest) {
     
     return NextResponse.next();
   }
-}
-
-export const config = {
-  matcher: '/:path*',
-}; 
+} 

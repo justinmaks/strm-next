@@ -100,13 +100,20 @@ export async function createUser(username: string, email: string, password: stri
   const hashedPassword = await hashPassword(password);
   
   try {
+    // Check if username or email already exists
+    const existingUser = getUserByUsername(username) || getUserByEmail(email);
+    if (existingUser) {
+      return null;
+    }
+
     const result = db.prepare(
       'INSERT INTO users (username, email, password, last_ip, last_login) VALUES (?, ?, ?, ?, CURRENT_TIMESTAMP)'
     ).run(username, email, hashedPassword, ip);
     
     return result.lastInsertRowid;
   } catch (error) {
-    throw new Error('Failed to create user');
+    console.error('Database error during user creation:', error);
+    throw error;
   }
 }
 
