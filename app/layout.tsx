@@ -13,8 +13,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Auth System",
-  description: "A secure authentication system with SQLite database",
+  title: "STRM NOW",
+  description: "Private Streaming Experience",
 };
 
 export default function RootLayout({
