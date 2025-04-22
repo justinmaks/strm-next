@@ -3,8 +3,18 @@ import { redirect } from 'next/navigation';
 import jwt from 'jsonwebtoken';
 import LogoutButton from '../components/LogoutButton';
 import { MediaSearch } from '../components/MediaSearch';
+import Announcements from '../components/Announcements';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key-change-in-production';
+
+// Define active announcements
+const activeAnnouncements = [
+  {
+    id: 'tv-shows-wip',
+    message: 'TV Shows section is a work in progress',
+    type: 'info' as const,
+  },
+];
 
 export default async function DashboardPage() {
   // Get the auth token from cookies
@@ -35,6 +45,10 @@ export default async function DashboardPage() {
             <p className="mt-2 text-lg text-gray-800">
               Welcome, <span className="font-semibold">{username}</span>!
             </p>
+          </div>
+
+          <div className="mb-6">
+            <Announcements announcements={activeAnnouncements} />
           </div>
 
           <div className="mb-8">
