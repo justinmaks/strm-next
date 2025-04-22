@@ -2,6 +2,7 @@ import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
 import jwt from 'jsonwebtoken';
 import LogoutButton from '../components/LogoutButton';
+import { MediaSearch } from '../components/MediaSearch';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key-change-in-production';
 
@@ -34,6 +35,10 @@ export default async function DashboardPage() {
             <p className="mt-2 text-lg text-gray-800">
               Welcome, <span className="font-semibold">{username}</span>!
             </p>
+          </div>
+
+          <div className="mb-8">
+            <MediaSearch />
           </div>
           
           <div className="border-t border-gray-200 pt-6 mt-6 flex justify-center">
