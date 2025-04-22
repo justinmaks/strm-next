@@ -1,6 +1,7 @@
 'use client';
 
 import React from 'react';
+import { useRouter } from 'next/navigation';
 
 interface MediaResult {
   id: number;
@@ -23,6 +24,12 @@ export const MediaResults: React.FC<MediaResultsProps> = ({
   isLoading,
   mediaType,
 }) => {
+  const router = useRouter();
+
+  const handleItemClick = (id: number) => {
+    router.push(`/watch/${mediaType}/${id}`);
+  };
+
   if (isLoading) {
     return (
       <div className="flex justify-center">
@@ -40,7 +47,8 @@ export const MediaResults: React.FC<MediaResultsProps> = ({
       {results.map((item) => (
         <div
           key={item.id}
-          className="bg-white rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-shadow"
+          onClick={() => handleItemClick(item.id)}
+          className="bg-white rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-shadow cursor-pointer transform hover:scale-105 transition-transform duration-200"
         >
           {item.poster_path ? (
             <img
