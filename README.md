@@ -41,6 +41,7 @@ The application uses SQLite for storage, with the database file located in the `
 3. Create a `.env.local` file with the following content:
    ```
    JWT_SECRET=your-secret-key-change-in-production
+   TMDB_API_KEY=key
    ```
 4. Run the development server:
    ```bash
