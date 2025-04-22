@@ -8,6 +8,7 @@ import {
   verifyPassword 
 } from '@/app/lib/auth';
 import { loginSchema } from '@/app/lib/validation';
+import { checkRateLimit } from '@/app/lib/rateLimiter';
 
 interface User {
   id: number;
@@ -21,6 +22,24 @@ interface User {
 
 export async function POST(request: NextRequest) {
   try {
+    // Check rate limit
+    const rateLimit = checkRateLimit(request);
+    if (!rateLimit.allowed) {
+      return NextResponse.json(
+        { 
+          error: 'Too many login attempts',
+          message: `Please try again in ${Math.ceil((rateLimit.resetTime - Date.now()) / 1000 / 60)} minutes`
+        },
+        { 
+          status: 429,
+          headers: {
+            'X-RateLimit-Remaining': rateLimit.remaining.toString(),
+            'X-RateLimit-Reset': rateLimit.resetTime.toString(),
+          }
+        }
+      );
+    }
+
     // Parse and validate the request body
     const body = await request.json();
     
