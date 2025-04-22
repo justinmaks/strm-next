@@ -32,7 +32,7 @@ export const MediaResults: React.FC<MediaResultsProps> = ({
   }
 
   if (results.length === 0) {
-    return <p className="text-center text-gray-500">No results found</p>;
+    return <p className="text-center text-gray-700">No results found</p>;
   }
 
   return (
@@ -50,19 +50,19 @@ export const MediaResults: React.FC<MediaResultsProps> = ({
             />
           ) : (
             <div className="w-full h-[300px] bg-gray-200 flex items-center justify-center">
-              <span className="text-gray-400">No Image</span>
+              <span className="text-gray-600">No Image</span>
             </div>
           )}
           <div className="p-4">
-            <h3 className="font-semibold text-lg mb-2">
+            <h3 className="font-semibold text-lg mb-2 text-gray-900">
               {mediaType === 'movie' ? item.title : item.name}
             </h3>
-            <p className="text-sm text-gray-600 mb-2">
+            <p className="text-sm text-gray-700 mb-2">
               {mediaType === 'movie'
                 ? item.release_date?.split('-')[0]
                 : item.first_air_date?.split('-')[0]}
             </p>
-            <p className="text-sm text-gray-500 line-clamp-3">{item.overview}</p>
+            <p className="text-sm text-gray-700 line-clamp-3">{item.overview}</p>
           </div>
         </div>
       ))}
