@@ -1,11 +1,9 @@
-# Next.js Authentication System
-
-This project implements a secure authentication system using Next.js, SQLite, and JWT.
+# strmnow.lol
 
 
 @@ TODO:
 - hcaptcha
-- embed.su or vidsrc.su streaming. player window/view
+- Streaming player: iterate sources and auto-pick a working server (DONE)
 
 ## Features
 
@@ -17,6 +15,41 @@ This project implements a secure authentication system using Next.js, SQLite, an
 - Protected routes with middleware
 - Proper error handling
 - Form validation (client and server side)
+
+## Streaming Player
+
+This app includes a lightweight streaming player page that automatically tests and selects a working embed provider from a curated list.
+
+- Location: `app/watch/[type]/[id]/page.tsx`
+- Sources list and URL templates: `app/lib/embedSources.ts`
+- Current support: movies only (`type = movie`). TV episodes are not yet implemented on the page.
+
+### How it works
+
+- On load, the player shows a small animation with “Picking server…”.
+- It probes providers sequentially using a hidden iframe (with `referrerPolicy="no-referrer"`).
+- The first provider that loads is selected and displayed in the visible iframe.
+- A small badge shows the current server and includes a “Next server” button to switch to the next provider manually.
+
+### Customizing providers
+
+- Edit `app/lib/embedSources.ts` to add/remove providers or reorder them.
+- The list entry format is:
+  - `id`: unique string
+  - `name`: display name
+  - `isFrench`: optional marker if the provider is FR-focused
+  - `urls.movie` and `urls.tv`: string templates with `{id}`, `{season}`, `{episode}` placeholders
+- UEmbed premium has been removed intentionally.
+
+### Route format
+
+- Visit `/watch/movie/[id]` where `[id]` is a TMDB ID expected by most providers in the list.
+- Example: `/watch/movie/550` for Fight Club.
+
+### Notes
+
+- Third-party embeds are unstable and may fail (e.g., HLS fragment errors). Use “Next server” or reorder sources to prefer more reliable ones for your region.
+- The probing timeout is 12s per provider to reduce false negatives.
 
 ## Security Features
 
@@ -54,6 +87,7 @@ The application uses SQLite for storage, with the database file located in the `
 - `/login` - Login page
 - `/register` - Registration page
 - `/dashboard` - Protected dashboard displaying welcome message
+- `/watch/movie/[id]` - Streaming player page (TMDB movie ID)
 - `/api/auth/login` - Login API endpoint
 - `/api/auth/register` - Registration API endpoint
 - `/api/auth/logout` - Logout API endpoint
@@ -68,31 +102,7 @@ The application uses SQLite for storage, with the database file located in the `
 - zod for validation
 - TypeScript
 
-## Deployment Considerations
 
-When deploying to production:
-1. Generate a strong JWT secret
-2. Ensure data directory is properly secured
-3. Consider adding rate limiting for auth endpoints
-4. Set up HTTPS/TLS
-5. Enable CORS protections as needed
-
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
-
-## Learn More
-
-To learn more about Next.js, take a look at the following resources:
-
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
 
 ## Docker Deployment
 
@@ -120,29 +130,14 @@ This project includes Docker support for easy deployment and development.
    docker compose down
    ```
 
-### Docker Configuration
 
-The project uses:
-- Node.js 22.8.0
-- SQLite with persistent storage
-- Production-optimized build
-- Health checks
-- Memory limits (2GB max)
 
-The Docker setup includes:
-- Persistent SQLite database storage
-- Environment variable configuration
-- Automatic restarts
-- Resource management
-- Production-ready settings
+
+
 
 ### Docker Volumes
 
 - `/app/data`: Contains SQLite database files
 - Node modules are cached in a named volume
 
-Remember to:
-1. Set proper environment variables in production
-2. Secure the data volume containing the SQLite database
-3. Monitor container health and logs
-4. Adjust memory limits as needed for your deployment
+
