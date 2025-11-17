@@ -1,5 +1,7 @@
 # strmnow.lol
 
+demo: https://strmnow.lol
+
 
 @@ TODO:
 - hcaptcha
