@@ -16,6 +16,15 @@ export interface SourceDefinition {
 
 export const availableSources: SourceDefinition[] = [
   {
+    id: 'moviesapi',
+    name: 'MoviesAPI',
+    isFrench: false,
+    urls: {
+      movie: 'https://moviesapi.club/movie/{id}',
+      tv: 'https://moviesapi.club/tv/{id}-{season}-{episode}',
+    },
+  },
+  {
     id: 'multiembed',
     name: 'MultiEmbed',
     isFrench: false,
@@ -33,15 +42,6 @@ export const availableSources: SourceDefinition[] = [
         tv: 'https://vidsrc.su/embed/tv/{id}/{season}/{episode}',
     },
     },
-  {
-    id: 'moviesapi',
-    name: 'MoviesAPI',
-    isFrench: false,
-    urls: {
-      movie: 'https://moviesapi.club/movie/{id}',
-      tv: 'https://moviesapi.club/tv/{id}-{season}-{episode}',
-    },
-  },
   {
     id: 'embedsu',
     name: 'EmbedSU',
