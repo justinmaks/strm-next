@@ -49,13 +49,13 @@ export const MediaSearch: React.FC = () => {
   };
 
   return (
-    <section className="space-y-6">
+    <section className="space-y-5 sm:space-y-6">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
         <div>
           <p className="font-mono text-xs uppercase tracking-[0.28em] text-accent-cool">
             Discover
           </p>
-          <h2 className="mt-3 font-display text-3xl font-semibold tracking-[-0.04em] text-foreground">
+          <h2 className="mt-3 font-display text-[1.8rem] font-semibold tracking-[-0.04em] text-foreground sm:text-3xl">
             Search the catalog
           </h2>
           <p className="mt-2 max-w-2xl text-sm leading-6 text-muted">
@@ -64,33 +64,33 @@ export const MediaSearch: React.FC = () => {
         </div>
 
         <div className="flex flex-wrap gap-2">
-        <button
+          <button
             type="button"
-          onClick={() => setMediaType('movie')}
+            onClick={() => setMediaType('movie')}
             className={`rounded-full px-4 py-2 text-sm font-semibold transition ${
-            mediaType === 'movie'
+              mediaType === 'movie'
                 ? 'bg-foreground text-white shadow-sm'
                 : 'surface-card-strong text-foreground/80'
-          }`}
-        >
-          Movies
-        </button>
-        <button
+            }`}
+          >
+            Movies
+          </button>
+          <button
             type="button"
             disabled
             className="rounded-full border border-dashed border-line px-4 py-2 text-sm font-semibold text-muted"
-        >
+          >
             TV Soon
-        </button>
-      </div>
+          </button>
+        </div>
       </div>
 
       <div className="space-y-4">
-          <SearchBar
-            onSearch={handleSearch}
+        <SearchBar
+          onSearch={handleSearch}
           placeholder="Try: Dune Part Two, Sinners, or Interstellar"
           isLoading={isLoading}
-          />
+        />
 
         {errorMessage ? (
           <div className="rounded-2xl border border-red-200 bg-red-50/80 px-4 py-3 text-sm text-red-900">

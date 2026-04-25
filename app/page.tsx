@@ -29,8 +29,8 @@ export default function Home() {
 
   return (
     <main className="relative overflow-hidden">
-      <section className="mx-auto flex min-h-screen w-full max-w-7xl flex-col px-6 pb-20 pt-6 sm:px-8 lg:px-10">
-        <header className="mb-12 flex flex-col gap-6 sm:flex-row sm:items-center sm:justify-between">
+      <section className="mx-auto flex min-h-screen w-full max-w-7xl flex-col px-4 pb-16 pt-4 sm:px-8 sm:pb-20 sm:pt-6 lg:px-10">
+        <header className="mb-8 flex flex-col gap-4 sm:mb-12 sm:flex-row sm:items-center sm:justify-between sm:gap-6">
           <div className="surface-card inline-flex items-center gap-3 rounded-full px-4 py-3">
             <div className="rounded-2xl bg-surface-strong p-2 shadow-sm">
               <Image
@@ -49,41 +49,41 @@ export default function Home() {
             </div>
           </div>
 
-          <div className="flex items-center gap-3">
-            <div className="surface-card rounded-full px-4 py-2 text-sm font-medium text-foreground/80">
+          <div className="flex flex-wrap items-center gap-3">
+            <div className="surface-card rounded-full px-4 py-2 text-xs font-medium uppercase tracking-[0.22em] text-foreground/80 sm:text-sm sm:normal-case sm:tracking-normal">
               Free streaming
             </div>
             <ThemeToggle />
           </div>
         </header>
 
-        <div className="grid gap-10 lg:grid-cols-[1.04fr_0.96fr] lg:items-start">
-          <div className="flex flex-col justify-center">
+        <div className="grid gap-8 lg:grid-cols-[1.04fr_0.96fr] lg:items-start lg:gap-10">
+          <div className="order-2 flex flex-col justify-center lg:order-1">
             <p className="mb-4 font-display text-sm font-semibold uppercase tracking-[0.32em] text-accent-cool">
               Free, fast, simple
             </p>
-            <h1 className="max-w-3xl font-display text-5xl font-semibold leading-[0.94] tracking-[-0.04em] text-foreground sm:text-6xl lg:text-7xl">
+            <h1 className="max-w-3xl font-display text-4xl font-semibold leading-[0.94] tracking-[-0.04em] text-foreground sm:text-6xl lg:text-7xl">
               Search a movie, pick a server, and start streaming.
             </h1>
-            <p className="mt-6 max-w-2xl text-lg leading-8 text-muted sm:text-xl">
+            <p className="mt-5 max-w-2xl text-base leading-7 text-muted sm:mt-6 sm:text-xl sm:leading-8">
               Browse the full TMDB catalog, jump straight into the player, and let automatic server fallback handle the
               rest. Every title, free to watch.
             </p>
 
-            <div className="mt-8 flex flex-wrap gap-3">
-              <div className="surface-card rounded-full px-4 py-2 text-sm font-medium text-foreground/80">
+            <div className="mt-6 flex flex-wrap gap-2 sm:mt-8 sm:gap-3">
+              <div className="surface-card rounded-full px-4 py-2 text-xs font-medium uppercase tracking-[0.22em] text-foreground/80 sm:text-sm sm:normal-case sm:tracking-normal">
                 TMDB-powered search
               </div>
-              <div className="surface-card rounded-full px-4 py-2 text-sm font-medium text-foreground/80">
+              <div className="surface-card rounded-full px-4 py-2 text-xs font-medium uppercase tracking-[0.22em] text-foreground/80 sm:text-sm sm:normal-case sm:tracking-normal">
                 Multiple stream sources
               </div>
-              <div className="surface-card rounded-full px-4 py-2 text-sm font-medium text-foreground/80">
+              <div className="surface-card rounded-full px-4 py-2 text-xs font-medium uppercase tracking-[0.22em] text-foreground/80 sm:text-sm sm:normal-case sm:tracking-normal">
                 Clean modern player
               </div>
             </div>
           </div>
 
-          <div className="surface-card rounded-[2rem] p-6 sm:p-7">
+          <div className="order-1 surface-card rounded-[1.75rem] p-5 sm:rounded-[2rem] sm:p-7 lg:order-2">
             <Announcements announcements={activeAnnouncements} />
             <div className="mt-5">
               <MediaSearch />
@@ -91,7 +91,7 @@ export default function Home() {
           </div>
         </div>
 
-        <div className="mt-14 grid gap-4 md:grid-cols-3">
+        <div className="mt-12 grid gap-4 md:mt-14 md:grid-cols-3">
           {highlights.map((item, index) => (
             <article
               key={item.title}

@@ -28,9 +28,9 @@ export const SearchBar: React.FC<SearchBarProps> = ({
   };
 
   return (
-    <form onSubmit={handleSubmit} className="max-w-3xl">
-      <div className="surface-card-strong flex flex-col gap-3 rounded-[1.75rem] p-3 sm:flex-row sm:items-center">
-        <div className="flex min-w-0 flex-1 items-center gap-3 rounded-[1.2rem] bg-surface-input px-4 py-3">
+    <form onSubmit={handleSubmit} className="max-w-none sm:max-w-3xl">
+      <div className="surface-card-strong flex flex-col gap-3 rounded-[1.5rem] p-3 sm:flex-row sm:items-center sm:rounded-[1.75rem]">
+        <div className="flex min-w-0 flex-1 items-center gap-3 rounded-[1rem] bg-surface-input px-4 py-3 sm:rounded-[1.2rem]">
           <svg
             aria-hidden="true"
             viewBox="0 0 24 24"
@@ -58,7 +58,7 @@ export const SearchBar: React.FC<SearchBarProps> = ({
         <button
           type="submit"
           disabled={disabled || isLoading}
-          className="inline-flex h-14 items-center justify-center rounded-[1.2rem] bg-accent px-6 text-sm font-semibold text-white shadow-[0_18px_40px_-20px_var(--glow)] transition hover:bg-accent-strong disabled:cursor-not-allowed disabled:opacity-60 sm:min-w-36"
+          className="inline-flex h-[3.25rem] w-full items-center justify-center rounded-[1rem] bg-accent px-6 text-sm font-semibold text-white shadow-[0_18px_40px_-20px_var(--glow)] transition hover:bg-accent-strong disabled:cursor-not-allowed disabled:opacity-60 sm:h-14 sm:w-auto sm:min-w-36 sm:rounded-[1.2rem]"
         >
           {isLoading ? 'Searching...' : 'Search'}
         </button>

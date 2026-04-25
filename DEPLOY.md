@@ -1,6 +1,6 @@
 # Deploying STRM NOW
 
-Target setup: a single VPS running the Next.js container with `docker compose`, fronted by nginx on the host, fronted by Cloudflare on the public DNS.
+Target setup: a single VPS running the Next.js container with `docker compose`, fronted by nginx on the host, fronted by Cloudflare on the public DNS, with TLS on the origin managed by Certbot/Let's Encrypt.
 
 ```
 client → Cloudflare (orange) → nginx (host :443) → docker (127.0.0.1:3000) → Next.js
@@ -12,6 +12,7 @@ The container binds to `127.0.0.1:3000` only — nothing on the public internet 
 
 - Docker Engine (recent — Compose v2 is required) and the `docker compose` plugin
 - nginx installed on the host
+- Certbot installed on the host (`python3-certbot-nginx` on Debian/Ubuntu)
 - Cloudflare proxying the domain (orange cloud on)
 - A TMDB API key
 
@@ -59,57 +60,10 @@ What the image gives you:
 `/etc/nginx/sites-available/strm-next`:
 
 ```nginx
-# Trust Cloudflare's edge IPs so $remote_addr reflects the real client.
-# Refresh from https://www.cloudflare.com/ips/ if Cloudflare adds new ranges.
-set_real_ip_from 173.245.48.0/20;
-set_real_ip_from 103.21.244.0/22;
-set_real_ip_from 103.22.200.0/22;
-set_real_ip_from 103.31.4.0/22;
-set_real_ip_from 141.101.64.0/18;
-set_real_ip_from 108.162.192.0/18;
-set_real_ip_from 190.93.240.0/20;
-set_real_ip_from 188.114.96.0/20;
-set_real_ip_from 197.234.240.0/22;
-set_real_ip_from 198.41.128.0/17;
-set_real_ip_from 162.158.0.0/15;
-set_real_ip_from 104.16.0.0/13;
-set_real_ip_from 104.24.0.0/14;
-set_real_ip_from 172.64.0.0/13;
-set_real_ip_from 131.0.72.0/22;
-set_real_ip_from 2400:cb00::/32;
-set_real_ip_from 2606:4700::/32;
-set_real_ip_from 2803:f800::/32;
-set_real_ip_from 2405:b500::/32;
-set_real_ip_from 2405:8100::/32;
-set_real_ip_from 2a06:98c0::/29;
-set_real_ip_from 2c0f:f248::/32;
-real_ip_header CF-Connecting-IP;
-real_ip_recursive on;
-
 server {
     listen 80;
     listen [::]:80;
     server_name your-domain.example;
-    return 301 https://$host$request_uri;
-}
-
-server {
-    listen 443 ssl http2;
-    listen [::]:443 ssl http2;
-    server_name your-domain.example;
-
-    # If you terminate TLS at nginx (recommended: Cloudflare Origin Cert):
-    ssl_certificate     /etc/nginx/cf-origin/cert.pem;
-    ssl_certificate_key /etc/nginx/cf-origin/key.pem;
-    ssl_protocols TLSv1.2 TLSv1.3;
-    ssl_prefer_server_ciphers off;
-
-    # Block requests that didn't actually transit Cloudflare.
-    # $realip_remote_addr is the TCP peer (Cloudflare's edge after set_real_ip_from).
-    # If it equals $remote_addr, set_real_ip_from didn't substitute — not from Cloudflare.
-    if ($realip_remote_addr = $remote_addr) {
-        return 403;
-    }
 
     client_max_body_size 1m;
 
@@ -142,16 +96,99 @@ sudo ln -s /etc/nginx/sites-available/strm-next /etc/nginx/sites-enabled/
 sudo nginx -t && sudo systemctl reload nginx
 ```
 
+Issue the certificate and let Certbot add the `listen 443 ssl` block plus the certificate paths. When Certbot asks whether to redirect HTTP to HTTPS, choose the redirect option:
+
+```bash
+sudo certbot --nginx -d your-domain.example
+```
+
+After Certbot finishes, update the generated HTTPS server block so it includes the same proxy config as the port `80` block above, then keep the Cloudflare real-IP rules near the top of the file:
+
+```nginx
+# Trust Cloudflare's edge IPs so $remote_addr reflects the real client.
+# Yes, if you use Cloudflare proxying and want correct client IPs, you need all of
+# Cloudflare's published ranges here. Missing ranges will cause some visitors to
+# show the wrong IP or fail your Cloudflare-only origin check.
+set_real_ip_from 173.245.48.0/20;
+set_real_ip_from 103.21.244.0/22;
+set_real_ip_from 103.22.200.0/22;
+set_real_ip_from 103.31.4.0/22;
+set_real_ip_from 141.101.64.0/18;
+set_real_ip_from 108.162.192.0/18;
+set_real_ip_from 190.93.240.0/20;
+set_real_ip_from 188.114.96.0/20;
+set_real_ip_from 197.234.240.0/22;
+set_real_ip_from 198.41.128.0/17;
+set_real_ip_from 162.158.0.0/15;
+set_real_ip_from 104.16.0.0/13;
+set_real_ip_from 104.24.0.0/14;
+set_real_ip_from 172.64.0.0/13;
+set_real_ip_from 131.0.72.0/22;
+set_real_ip_from 2400:cb00::/32;
+set_real_ip_from 2606:4700::/32;
+set_real_ip_from 2803:f800::/32;
+set_real_ip_from 2405:b500::/32;
+set_real_ip_from 2405:8100::/32;
+set_real_ip_from 2a06:98c0::/29;
+set_real_ip_from 2c0f:f248::/32;
+real_ip_header CF-Connecting-IP;
+real_ip_recursive on;
+
+server {
+    listen 443 ssl http2;
+    listen [::]:443 ssl http2;
+    server_name your-domain.example;
+
+    # Managed by Certbot.
+    ssl_certificate /etc/letsencrypt/live/your-domain.example/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/your-domain.example/privkey.pem;
+    include /etc/letsencrypt/options-ssl-nginx.conf;
+    ssl_dhparam /etc/letsencrypt/ssl-dhparams.pem;
+
+    # Block requests that did not actually arrive through Cloudflare.
+    if ($realip_remote_addr = $remote_addr) {
+        return 403;
+    }
+
+    client_max_body_size 1m;
+
+    location / {
+        proxy_pass http://127.0.0.1:3000;
+        proxy_http_version 1.1;
+
+        proxy_set_header Host              $host;
+        proxy_set_header X-Real-IP         $remote_addr;
+        proxy_set_header X-Forwarded-For   $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_set_header CF-Connecting-IP  $http_cf_connecting_ip;
+
+        proxy_set_header Upgrade           $http_upgrade;
+        proxy_set_header Connection        "upgrade";
+
+        proxy_buffering off;
+        proxy_read_timeout 60s;
+    }
+}
+```
+
+Renewal is then handled by Certbot's systemd timer/cron job. Verify with:
+
+```bash
+sudo systemctl status certbot.timer
+sudo certbot renew --dry-run
+```
+
 ## 5. Cloudflare settings
 
-- **SSL/TLS mode:** Full (strict). Generate a **Cloudflare Origin Certificate** for the domain and put it at `/etc/nginx/cf-origin/{cert,key}.pem`. This is what nginx serves; Cloudflare verifies it.
+- **SSL/TLS mode:** Full (strict). A normal Let's Encrypt cert from Certbot is fine here; Cloudflare will validate it just like any other publicly trusted origin cert.
 - **Always Use HTTPS:** on.
 - **Proxy status:** orange cloud (proxied). Required for `cf-connecting-ip` to be set.
+- **DNS for Certbot:** easiest path is temporarily setting the record to DNS-only (gray cloud) for the first `certbot --nginx` run, then turning the proxy back on. If you want to keep the proxy on the whole time, use a DNS-01 Certbot flow instead.
 - **Rate Limiting (optional, recommended):** add a rule on `/api/tmdb/search` (e.g. 60 req/min per IP). Stops abuse at the edge before it touches your VPS. The app's per-IP limit (30/min) stays as a backstop.
 
 ## 6. Lock down the VPS firewall
 
-Even with Cloudflare in front, somebody can find the origin IP via DNS history or scanning. Block 443 from anything that isn't Cloudflare:
+Even with Cloudflare in front, somebody can find the origin IP via DNS history or scanning. If you want the origin reachable only through Cloudflare, block 443 from anything that is not a Cloudflare edge IP:
 
 ```bash
 # Reset whatever's there for 443 first if needed
@@ -162,7 +199,7 @@ sudo ufw deny 443/tcp
 sudo ufw enable
 ```
 
-Re-run this whenever Cloudflare adds ranges (rare).
+Yes, that means allowing all published Cloudflare ranges, not just a couple you happen to see in logs. Cloudflare can route requests through any of its edge networks. Re-run this whenever Cloudflare adds ranges (rare), or script it from their IP list endpoints if you want to automate it.
 
 Note: `127.0.0.1:3000` is bound to loopback by docker, so it's already unreachable from outside the host regardless of ufw.
 
