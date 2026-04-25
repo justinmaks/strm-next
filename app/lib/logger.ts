@@ -1,5 +1,7 @@
 import winston from 'winston';
 import 'winston-daily-rotate-file';
+import fs from 'node:fs';
+import path from 'node:path';
 
 // Define log levels
 const levels = {
@@ -19,12 +21,10 @@ const format = winston.format.combine(
 );
 
 // Create the logs directory if it doesn't exist
-const fs = require('fs');
-const path = require('path');
 const logsDir = path.join(process.cwd(), 'logs');
 
 if (!fs.existsSync(logsDir)) {
-  fs.mkdirSync(logsDir);
+  fs.mkdirSync(logsDir, { recursive: true });
 }
 
 // Create the logger

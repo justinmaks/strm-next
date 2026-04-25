@@ -1,43 +1,45 @@
-# Use Node 22.8.0 with Debian (slim version to keep it reasonably sized)
-FROM node:22.8.0-slim
+# syntax=docker/dockerfile:1.7
 
-# Install required system dependencies for better-sqlite3
-RUN apt-get update && apt-get install -y \
-    python3 \
-    make \
-    g++ \
-    gcc \
-    git \
-    && rm -rf /var/lib/apt/lists/*
-
-# Create app directory
+# --- deps: install full deps (incl. dev) for the build ---
+FROM node:22-slim AS deps
 WORKDIR /app
-
-# Create data directory with correct permissions
-RUN mkdir -p /app/data && \
-    chown -R node:node /app && \
-    chown -R node:node /app/data && \
-    chmod 755 /app/data
-
-# Switch to non-root user
-USER node
-
-# Install dependencies first (for better caching)
-COPY --chown=node:node package*.json ./
+COPY package.json package-lock.json ./
 RUN npm ci
 
-# Copy the rest of the application
-COPY --chown=node:node . .
-
-# Build the Next.js application
+# --- builder: compile Next into a standalone server ---
+FROM node:22-slim AS builder
+WORKDIR /app
+ENV NEXT_TELEMETRY_DISABLED=1
+COPY --from=deps /app/node_modules ./node_modules
+COPY . .
 RUN npm run build
 
-# Expose the port Next.js runs on
-EXPOSE 3000
+# --- runtime: minimal image, non-root, just the standalone server ---
+FROM node:22-slim AS runtime
+WORKDIR /app
 
-# Set environment variables
 ENV NODE_ENV=production
 ENV NEXT_TELEMETRY_DISABLED=1
+ENV PORT=3000
+ENV HOSTNAME=0.0.0.0
 
-# Start the application
-CMD ["npm", "start"] 
+# Dedicated unprivileged user (matches volume ownership in compose)
+RUN groupadd --system --gid 1001 nodejs \
+ && useradd --system --uid 1001 --gid nodejs --home /app nextjs
+
+# Standalone output bundles only the runtime deps Next actually needs
+COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
+COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
+COPY --from=builder --chown=nextjs:nodejs /app/public ./public
+
+# Logger writes here (mounted as a volume in compose)
+RUN mkdir -p /app/logs && chown nextjs:nodejs /app/logs
+
+USER nextjs
+
+EXPOSE 3000
+
+HEALTHCHECK --interval=30s --timeout=5s --start-period=15s --retries=3 \
+  CMD node -e "fetch('http://127.0.0.1:3000/').then(r=>{process.exit(r.ok?0:1)}).catch(()=>process.exit(1))"
+
+CMD ["node", "server.js"]

@@ -1,30 +1,43 @@
-import { NextResponse } from 'next/server';
-import type { NextRequest } from 'next/server';
+const WINDOW_MS = 60_000;
+const MAX_REQUESTS = 30;
+const MAX_TRACKED_KEYS = 10_000;
 
-// Define the type for our rate limit map
-const rateLimit: Map<string, number[]> = new Map();
+type Bucket = { count: number; resetAt: number };
 
-export function rateLimiter(request: NextRequest) {
-  // Get IP from headers or connection
-  const ip = request.headers.get('x-forwarded-for') || 
-             request.headers.get('x-real-ip') ||
-             'anonymous';
+const buckets = new Map<string, Bucket>();
 
-  const timeFrame = 60 * 1000; // 1 minute
-  const maxAttempts = 5; // 5 attempts per minute
+export type RateLimitResult = {
+  allowed: boolean;
+  remaining: number;
+  resetAt: number;
+  limit: number;
+};
 
+export function checkRateLimit(key: string): RateLimitResult {
   const now = Date.now();
-  const userRequests = rateLimit.get(ip) ?? [];
-  const recentRequests = userRequests.filter((time: number) => now - time < timeFrame);
 
-  if (recentRequests.length >= maxAttempts) {
-    return NextResponse.json(
-      { error: 'Too many requests' },
-      { status: 429 }
-    );
+  if (buckets.size > MAX_TRACKED_KEYS) {
+    for (const [k, b] of buckets) {
+      if (now >= b.resetAt) buckets.delete(k);
+    }
   }
 
-  recentRequests.push(now);
-  rateLimit.set(ip, recentRequests);
-  return null;
-} 
+  const bucket = buckets.get(key);
+  if (!bucket || now >= bucket.resetAt) {
+    const resetAt = now + WINDOW_MS;
+    buckets.set(key, { count: 1, resetAt });
+    return { allowed: true, remaining: MAX_REQUESTS - 1, resetAt, limit: MAX_REQUESTS };
+  }
+
+  if (bucket.count >= MAX_REQUESTS) {
+    return { allowed: false, remaining: 0, resetAt: bucket.resetAt, limit: MAX_REQUESTS };
+  }
+
+  bucket.count += 1;
+  return {
+    allowed: true,
+    remaining: MAX_REQUESTS - bucket.count,
+    resetAt: bucket.resetAt,
+    limit: MAX_REQUESTS,
+  };
+}
