@@ -1,145 +1,69 @@
-# strmnow.lol
+# STRM NOW
 
-demo: https://strmnow.lol
+Public movie search and streaming launcher built with Next.js 16, React 19, Tailwind 4, and TMDB.
 
+## What Changed
 
-@@ TODO:
-- hcaptcha
-- Streaming player: iterate sources and auto-pick a working server (DONE)
+- Authentication, registration, JWT cookies, and the SQLite user store were removed.
+- The homepage is now the main product surface with public movie search.
+- The player UI was refreshed and the server-selection flow was tightened.
+- Dependencies were modernized around Next.js 16 tooling.
 
 ## Features
 
-- User registration with validation
-- Secure login authentication
-- Password hashing with bcrypt
-- JWT-based authentication
-- IP address tracking for logins
-- Protected routes with middleware
-- Proper error handling
-- Form validation (client and server side)
+- Public TMDB-powered movie search
+- Refreshed landing page and result cards
+- Automatic embed-provider probing with manual server switching
+- Lightweight request validation with Zod
+- Structured logging via Winston
 
 ## Streaming Player
 
-This app includes a lightweight streaming player page that automatically tests and selects a working embed provider from a curated list.
+The player probes providers sequentially and opens the first one that responds.
 
-- Location: `app/watch/[type]/[id]/page.tsx`
-- Sources list and URL templates: `app/lib/embedSources.ts`
-- Current support: movies only (`type = movie`). TV episodes are not yet implemented on the page.
+- Page: `app/watch/[type]/[id]/page.tsx`
+- Providers: `app/lib/embedSources.ts`
+- Current support: movies only
 
-### How it works
-
-- On load, the player shows a small animation with “Picking server…”.
-- It probes providers sequentially using a hidden iframe (with `referrerPolicy="no-referrer"`).
-- The first provider that loads is selected and displayed in the visible iframe.
-- A small badge shows the current server and includes a “Next server” button to switch to the next provider manually.
-
-### Customizing providers
-
-- Edit `app/lib/embedSources.ts` to add/remove providers or reorder them.
-- The list entry format is:
-  - `id`: unique string
-  - `name`: display name
-  - `isFrench`: optional marker if the provider is FR-focused
-  - `urls.movie` and `urls.tv`: string templates with `{id}`, `{season}`, `{episode}` placeholders
-- UEmbed premium has been removed intentionally.
-
-### Route format
-
-- Visit `/watch/movie/[id]` where `[id]` is a TMDB ID expected by most providers in the list.
-- Example: `/watch/movie/550` for Fight Club.
-
-### Notes
-
-- Third-party embeds are unstable and may fail (e.g., HLS fragment errors). Use “Next server” or reorder sources to prefer more reliable ones for your region.
-- The probing timeout is 12s per provider to reduce false negatives.
-
-## Security Features
-
-- Password hashing with bcrypt (12 rounds)
-- Secure HTTP-only cookies for JWT storage
-- Input sanitization and validation using Zod
-- Protection against common attacks (SQL injection via prepared statements)
-- IP address detection with fallbacks for proxies (Cloudflare, Nginx)
-- Password strength requirements
-
-## Database
-
-The application uses SQLite for storage, with the database file located in the `/data` directory.
+If all providers fail, the page stays in the loading state with a retry message instead of dropping into a broken frame.
 
 ## Getting Started
 
-1. Clone the repository
-2. Install dependencies:
+1. Install dependencies:
    ```bash
    npm install
    ```
-3. Create a `.env.local` file with the following content:
+2. Create `.env.local`:
+   ```bash
+   TMDB_API_KEY=your_tmdb_key
    ```
-   JWT_SECRET=your-secret-key-change-in-production
-   TMDB_API_KEY=key
-   ```
-4. Run the development server:
+3. Start the app:
    ```bash
    npm run dev
    ```
-5. Visit http://localhost:3000
+4. Open `http://localhost:3000`
 
 ## Routes
 
-- `/login` - Login page
-- `/register` - Registration page
-- `/dashboard` - Protected dashboard displaying welcome message
-- `/watch/movie/[id]` - Streaming player page (TMDB movie ID)
-- `/api/auth/login` - Login API endpoint
-- `/api/auth/register` - Registration API endpoint
-- `/api/auth/logout` - Logout API endpoint
+- `/` public landing page with movie search
+- `/watch/movie/[id]` movie player route
 
-## Technologies Used
+## Scripts
 
-- Next.js 15.3+
-- React 19+
-- SQLite (via better-sqlite3)
-- bcryptjs for password hashing
-- jsonwebtoken for JWT tokens
-- zod for validation
-- TypeScript
+- `npm run dev`
+- `npm run build`
+- `npm run start`
+- `npm run lint`
 
+## Stack
 
+- Next.js 16.2.4
+- React 19.2.5
+- Tailwind CSS 4.2.4
+- TypeScript 6
+- Zod 4
 
-## Docker Deployment
+## Docker
 
-This project includes Docker support for easy deployment and development.
-
-### Prerequisites
-
-- Docker
-- Docker Compose
-
-### Running with Docker
-
-1. Build and start the container:
-   ```bash
-   docker compose up --build
-   ```
-
-2. For production deployment:
-   ```bash
-   docker compose -f docker-compose.yml up -d
-   ```
-
-3. To stop the containers:
-   ```bash
-   docker compose down
-   ```
-
-
-
-
-
-
-### Docker Volumes
-
-- `/app/data`: Contains SQLite database files
-- Node modules are cached in a named volume
-
+The Docker files are still present. If you use them, make sure `TMDB_API_KEY` is available to the container at runtime.
 

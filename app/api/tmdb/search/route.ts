@@ -1,73 +1,109 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { cookies } from 'next/headers';
-import jwt from 'jsonwebtoken';
 import logger from '@/app/lib/logger';
+import { checkRateLimit } from '@/app/lib/rateLimit';
+import { searchSchema } from '@/app/lib/validation';
 
 const TMDB_API_KEY = process.env.TMDB_API_KEY;
 const TMDB_BASE_URL = 'https://api.themoviedb.org/3';
-const JWT_SECRET = process.env.JWT_SECRET;
+// TMDB v4 read-access tokens are JWTs (three dot-separated segments).
+// v3 keys are 32-char hex. v4 must use Authorization: Bearer; v3 uses ?api_key.
+const IS_BEARER_TOKEN = !!TMDB_API_KEY && TMDB_API_KEY.split('.').length === 3;
+
+type TmdbSearchItem = {
+  id: number;
+  title?: string;
+  name?: string;
+  poster_path?: string | null;
+  release_date?: string | null;
+  first_air_date?: string | null;
+  overview?: string;
+  vote_average?: number;
+};
+
+function getClientIp(request: NextRequest): string {
+  const cf = request.headers.get('cf-connecting-ip');
+  if (cf) return cf.trim();
+
+  const real = request.headers.get('x-real-ip');
+  if (real) return real.trim();
+
+  const fwd = request.headers.get('x-forwarded-for');
+  if (fwd) return fwd.split(',')[0].trim();
+
+  return 'unknown';
+}
 
 export async function GET(request: NextRequest) {
-  const ip = request.headers.get('x-forwarded-for')?.split(',')[0] || 
-             request.headers.get('x-real-ip') || 
-             'unknown';
-  
-  // Add authentication check
-  const cookieStore = await cookies();
-  const token = cookieStore.get('auth_token')?.value;
-
-  if (!token) {
-    logger.warn('TMDB search attempt without token', { ip });
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-  }
-
-  try {
-    // Verify JWT token
-    const decoded = jwt.verify(token, JWT_SECRET!) as { userId: number; username: string };
-    logger.info('TMDB search request', { 
-      ip,
-      userId: decoded.userId,
-      username: decoded.username
-    });
-  } catch (error) {
-    logger.warn('TMDB search with invalid token', { ip });
-    return NextResponse.json({ error: 'Invalid token' }, { status: 401 });
-  }
-
-  const searchParams = request.nextUrl.searchParams;
-  const query = searchParams.get('query');
-  const type = searchParams.get('type');
-
-  if (!query || !type) {
-    logger.warn('TMDB search missing parameters', { 
-      ip,
-      query,
-      type
-    });
-    return NextResponse.json({ error: 'Missing query or type parameter' }, { status: 400 });
-  }
+  const ip = getClientIp(request);
 
   if (!TMDB_API_KEY) {
     logger.error('TMDB API key missing', { ip });
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 
-  try {
-    const endpoint = type === 'movie' ? 'search/movie' : 'search/tv';
-    const response = await fetch(
-      `${TMDB_BASE_URL}/${endpoint}?api_key=${TMDB_API_KEY}&query=${encodeURIComponent(query)}&language=en-US&page=1`,
-      { 
-        next: { revalidate: 60 },
+  const rate = checkRateLimit(ip);
+  if (!rate.allowed) {
+    const retryAfter = Math.max(1, Math.ceil((rate.resetAt - Date.now()) / 1000));
+    logger.warn('TMDB search rate limited', { ip, retryAfter });
+    return NextResponse.json(
+      { error: 'Too many requests' },
+      {
+        status: 429,
         headers: {
-          'Accept': 'application/json',
-          'Content-Type': 'application/json'
-        }
-      }
+          'Retry-After': String(retryAfter),
+          'X-RateLimit-Limit': String(rate.limit),
+          'X-RateLimit-Remaining': '0',
+          'X-RateLimit-Reset': String(Math.ceil(rate.resetAt / 1000)),
+        },
+      },
     );
+  }
+
+  try {
+    const validationResult = searchSchema.safeParse({
+      query: request.nextUrl.searchParams.get('query'),
+      type: request.nextUrl.searchParams.get('type') ?? 'movie',
+    });
+
+    if (!validationResult.success) {
+      logger.warn('TMDB search validation failed', {
+        ip,
+        errors: validationResult.error.flatten(),
+      });
+
+      return NextResponse.json({ error: 'Invalid search parameters' }, { status: 400 });
+    }
+
+    const { query, type } = validationResult.data;
+    const endpoint = type === 'movie' ? 'search/movie' : 'search/tv';
+    const tmdbUrl = new URL(`${TMDB_BASE_URL}/${endpoint}`);
+    tmdbUrl.searchParams.set('query', query);
+    tmdbUrl.searchParams.set('language', 'en-US');
+    tmdbUrl.searchParams.set('page', '1');
+    if (!IS_BEARER_TOKEN) {
+      tmdbUrl.searchParams.set('api_key', TMDB_API_KEY);
+    }
+
+    logger.info('TMDB search request', {
+      ip,
+      query,
+      type,
+      userAgent: request.headers.get('user-agent'),
+    });
+
+    const response = await fetch(tmdbUrl, {
+      cache: 'no-store',
+      headers: {
+        Accept: 'application/json',
+        ...(IS_BEARER_TOKEN ? { Authorization: `Bearer ${TMDB_API_KEY}` } : {}),
+      },
+    });
 
     if (!response.ok) {
       logger.error('TMDB API error', { 
         ip,
+        query,
+        type,
         status: response.status,
         statusText: response.statusText
       });
@@ -77,12 +113,13 @@ export async function GET(request: NextRequest) {
     const data = await response.json();
     
     // Only send necessary data to client
-    const sanitizedResults = data.results.map((item: any) => ({
+    const sanitizedResults = (Array.isArray(data.results) ? (data.results as TmdbSearchItem[]) : []).map((item) => ({
       id: item.id,
-      title: item.title || item.name,
-      poster_path: item.poster_path,
-      release_date: item.release_date || item.first_air_date,
-      overview: item.overview
+      title: item.title || item.name || 'Untitled',
+      poster_path: item.poster_path ?? null,
+      release_date: item.release_date || item.first_air_date || null,
+      overview: item.overview || '',
+      vote_average: typeof item.vote_average === 'number' ? item.vote_average : 0,
     }));
 
     logger.info('TMDB search successful', { 
